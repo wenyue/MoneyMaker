@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import math
 import data
+import config
+from datetime import datetime
 
 
 class ExpToken(object):
@@ -12,16 +15,24 @@ class ExpToken(object):
 class Expection(object):
 
 	def __init__(self, line_id):
-		self.exp = float('inf')
+		self.line_id = line_id
+		self.is_valid = False
+		self.annual_returns = 0
 		self.home_hdp = None
 		self.away_hdp = None
 		self.draw_exp = 0
-		self.line_id = line_id
-		line = data.getLine(line_id)
-		self.initWithLine(line)
+		self.day_delta = self._getDayDelta()
+		self._initWithLine()
+
+	def _getDayDelta(self):
+		event = data.getEvent(self.line_id)
+		start = datetime.strptime(event['starts'], "%Y-%m-%dT%H:%M:%SZ")
+		now = datetime.utcnow()
+		return (start - now).days
 
 # yapf: disable
-	def initWithLine(self, line): # noqa
+	def _initWithLine(self): # noqa
+		line = data.getLine(self.line_id)
 		moneyline = line['moneyline']
 		spreads = line['spreads']
 		homes = []
@@ -65,13 +76,19 @@ class Expection(object):
 				raise KeyError()
 
 		draw = moneyline['draw']
+		min_exp = float('inf')
 		for hToken in homes:
 			for aToken in aways:
 				draw_exp = max(0, 1.0 - hToken.ddraw - aToken.ddraw) / draw
 				exp = hToken.exp + aToken.exp + draw_exp
-				if exp < self.exp:
-					self.exp = exp
+				if exp < min_exp:
+					min_exp = exp
 					self.home_hdp = hToken.hdp
 					self.away_hdp = aToken.hdp
 					self.draw_exp = 1.0 - hToken.ddraw - aToken.ddraw
+		win_rate = (1.0 + min_exp * config.RAKEBACK_RATE) / min_exp
+		self.annual_returns = math.pow(win_rate, 365.0 / (self.day_delta + 1)) - 1.0
+		if self.annual_returns > config.ANNUAL_RETURNS and win_rate > 1.0 + config.MIN_PROFIT_RATE:
+			self.is_valid = True
+
 # yapf: enable

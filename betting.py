@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import config
-from exception import NetworkException
 import data
 from pinnacle.apiclient import APIClient
 from pinnacle.enums import BetType, Boolean, TeamType
@@ -52,12 +51,12 @@ class BetManager(object):
 		if home_hdp is None:
 			bet_type = BetType.MoneyLine.value
 			spread = None
-			stake = config.WIN_STACK / line['moneyline']['home']
+			stake = config.STACK_FACTOR / line['moneyline']['home']
 			alt_line_id = None
 		else:
 			bet_type = BetType.Spread.value
 			spread = filter(lambda spread: spread['hdp'] == home_hdp, line['spreads'])[0]
-			stake = config.WIN_STACK / spread['home']
+			stake = config.STACK_FACTOR / spread['home']
 			alt_line_id = spread.get('altLineId', None)
 		self._placeBet(
 			self.format(event, line, spread, expection, 'home', stake),
@@ -76,12 +75,12 @@ class BetManager(object):
 		if away_hdp is None:
 			bet_type = BetType.MoneyLine.value
 			spread = None
-			stake = config.WIN_STACK / line['moneyline']['away']
+			stake = config.STACK_FACTOR / line['moneyline']['away']
 			alt_line_id = None
 		else:
 			bet_type = BetType.Spread.value
 			spread = filter(lambda spread: spread['hdp'] == away_hdp, line['spreads'])[0]
-			stake = config.WIN_STACK / spread['away']
+			stake = config.STACK_FACTOR / spread['away']
 			alt_line_id = spread.get('altLineId', None)
 		self._placeBet(
 			self.format(event, line, spread, expection, 'away', stake),
@@ -95,7 +94,7 @@ class BetManager(object):
 			alt_line_id=alt_line_id,
 			accept_better_line=accept_better_line)
 		# draw
-		stake = config.WIN_STACK * expection.draw_exp / line['moneyline']['draw']
+		stake = config.STACK_FACTOR * expection.draw_exp / line['moneyline']['draw']
 		if stake < 1:
 			return
 		team = TeamType.Draw.value
@@ -121,7 +120,8 @@ class BetManager(object):
 		formats.append(u'方案: %s 下 %s' % (bet_type, team))
 		formats.append(u'赔率: %.3f' % odd)
 		formats.append(u'下注金: %.2f' % stake)
-		formats.append(u'期望值: %.5f' % expection.exp)
+		formats.append(u'距离比赛: %d天' % expection.day_delta)
+		formats.append(u'年化利率: %.2f%%' % (expection.annualized_returns * 100))
 		return '\n'.join(formats)
 
 

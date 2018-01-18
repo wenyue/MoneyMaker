@@ -27,23 +27,12 @@ class MoneyMaker(object):
 
 			# find make money chances
 			expections = [Expection(line) for line in lines]
-			[
-				betting.placeBet(exp)
-				for exp in expections
-				if exp.exp < config.MAX_EXPECTION
-			]
+			[betting.placeBet(exp) for exp in expections if exp.is_valid]
 
 			# sleep
 			time.sleep(8.0)
-
-	def tryOneBet(self):
-		lines = data.getAvalableLines()
-		expections = [Expection(line) for line in lines]
-		expection = min(expections, key=lambda x: x.exp)
-		betting.placeBet(expection)
 
 
 if __name__ == '__main__':
 	mm = MoneyMaker()
 	mm.run()
-	# mm.tryOneBet()
